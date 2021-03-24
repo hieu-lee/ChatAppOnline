@@ -1,9 +1,5 @@
 ﻿using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ChatApp.Shared
 {
@@ -13,5 +9,9 @@ namespace ChatApp.Shared
         public bool success { get; set; }
         [JsonProperty("err")]
         public string err { get; set; } = string.Empty;
+        [JsonProperty("avatar")]
+        public byte[] avatar { get; set; }
+        [JsonProperty("rooms")]
+        public HashSet<string> rooms { get; set; }
     }
 }

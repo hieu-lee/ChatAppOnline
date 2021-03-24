@@ -1,7 +1,19 @@
 ﻿@page "/"
+@using ChatApp.Client.Services
+@inject NavigationManager navigationManager
+@inject StateService State
 
-<h1>Hello, world!</h1>
+<h1>Welcome @State.username to Bob Lee's Chatroom</h1>
 
-Welcome to your new app.
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+@code {      
+    protected override void OnInitialized()
+    {
+        if (!State.logged)
+        {
+            navigationManager.NavigateTo("/login");
+        }
+    }
+}
+
+

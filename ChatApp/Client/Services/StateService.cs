@@ -9,5 +9,7 @@ namespace ChatApp.Client.Services
     {
         public bool logged { get; set; } = false;
         public string username { get; set; } = string.Empty;
+        public byte[] avatar { get; set; }
+        public HashSet<string> rooms { get; set; } = new();
     }
 }

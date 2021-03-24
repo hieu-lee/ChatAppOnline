@@ -44,7 +44,7 @@ namespace ChatApp.Server.Services
             .From("bobleechatroom@gmail.com")
             .To(mail, username)
             .Subject("Verification Code")
-            .UsingTemplate(template.ToString(), new { FirstName = username, SocialMedia = "Bornpook", Code = code.ToString() })
+            .UsingTemplate(template.ToString(), new { FirstName = username, SocialMedia = "Bob Lee's Chatroom", Code = code.ToString() })
             .SendAsync();
             ResetAccounts.Add(username, code);
             Timer timer = new(300000);

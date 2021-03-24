@@ -91,6 +91,10 @@ namespace ChatApp.Server.Controllers
             {
                 if (encryptService.Decrypt(myacc.password) == acc.password)
                 {
+                    if (myacc.connected)
+                    {
+                        return new SignResult() { success = false, err = "Your account has already been online" };
+                    }
                     var task = accounts.UpdateOneAsync(filter, update);
                     memoryService.OnlineTrack[acc.username] = new(600000);
                     memoryService.OnlineTrack[acc.username].Elapsed += (s, e) =>
@@ -103,7 +107,7 @@ namespace ChatApp.Server.Controllers
                         memoryService.OnlineTrack[acc.username].Close();
                     };
                     await task;
-                    return new SignResult() { success = true };
+                    return new SignResult() { success = true, avatar = myacc.avatar, rooms = myacc.rooms };
                 }
                 return new SignResult() { success = false, err = "Incorrect password" };
             }

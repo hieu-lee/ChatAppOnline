@@ -109,6 +109,8 @@ else
             await MatDialogService.AlertAsync("Successfully logged in");
             State.logged = true;
             State.username = username;
+            State.avatar = res.avatar;
+            State.rooms = res.rooms;
         }
     }
 
