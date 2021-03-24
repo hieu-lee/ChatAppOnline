@@ -55,11 +55,13 @@ namespace ChatApp.Server.Controllers
                     {
                         if (room.password == encryptService.Encrypt(password))
                         {
+                            var usermesstask = memoryService.ChatRooms[roomid].CreateCollectionAsync(username);
                             var usertask = accounts.UpdateOneAsync(userfilter, userupdate);
                             room.users.Add(username);
                             var task = memoryService.RoomAccounts[roomid].InsertOneAsync(new Account() { username = username, connected = true });
                             var task1 = rooms.UpdateOneAsync(filter, update);
                             memoryService.ChatRooms[roomid].CreateCollection(username);
+                            await usermesstask;
                             await usertask;
                             await task;
                             await task1;
@@ -96,13 +98,20 @@ namespace ChatApp.Server.Controllers
                 room.users.Add(username);
                 var task = rooms.InsertOneAsync(room);
                 var roomdb = client.GetDatabase(room.Id);
+                var task1 = roomdb.CreateCollectionAsync("messages");
+                var task2 = roomdb.CreateCollectionAsync(username);
                 roomdb.CreateCollection("accounts");
                 memoryService.ChatRooms[room.Id] = roomdb;
+                await task1;
+                var task3 = Task.Factory.StartNew(() => { return roomdb.GetCollection<Message>("messages"); });
                 var roomacc = roomdb.GetCollection<Account>("accounts");
+                var roommess = await task3;
                 memoryService.RoomAccounts[room.Id] = roomacc;
+                memoryService.RoomMessages[room.Id] = roommess;
                 roomacc.InsertOne(new Account() { username = username, connected = true });
                 await usertask;
                 await task;
+                await task2;
                 return new SignResult() { success = true };
             }
         }

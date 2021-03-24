@@ -18,6 +18,7 @@ namespace ChatApp.Server.Services
     {
         public Dictionary<string, IMongoDatabase> ChatRooms { get; set; } = new();
         public Dictionary<string, IMongoCollection<Account>> RoomAccounts { get; set; } = new();
+        public Dictionary<string, IMongoCollection<Message>> RoomMessages { get; set; } = new();
         public Dictionary<string, int> ResetAccounts { get; set; } = new();
         public Dictionary<string, Timer> TimerReset { get; set; } = new();
         public Dictionary<string, Timer> OnlineTrack { get; set; } = new();
