@@ -15,8 +15,6 @@ namespace ChatApp.Shared
         public bool connected { get; set; }
         [BsonElement("typing")]
         public bool typing { get; set; } = false;
-        [BsonElement("contacts")]
-        public HashSet<string> contacts = new HashSet<string>();
         [BsonElement("avatar")]
         public byte[] avatar { get; set; }
         [BsonElement("rooms")]

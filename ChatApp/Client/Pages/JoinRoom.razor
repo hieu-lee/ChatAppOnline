@@ -1,16 +1,146 @@
-﻿@page "/join-room"
+﻿@page "/joinroom"
+@page "/joinroom/{CreateRoom:bool}"
 @using ChatApp.Client.Services
+@using System.Net.Http.Formatting
 @inject NavigationManager navigationManager
 @inject StateService State
+@inject HttpClient Http
+@inject IMatDialogService MatDialogService
 
 <h1>Welcome @State.username to Bob Lee's Chatroom</h1>
+@if (State.logged)
+{
+    if (!CreateRoom)
+    {
+        <div class="wrapper">
+            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12 mat-elevation-z5 index-row-item mdc-theme--surface" style="text-align:center; padding: 20px 40px;">
+                <div class="form">
+                    <h4>Join Room</h4>
+                    <MatTextField @bind-Value="@roomid" Label="RoomId" Required="true"></MatTextField><br />
+                    <MatTextField @bind-Value="@password" Label="Password" Type="password" Required="false"></MatTextField><br />
+                    <p>Can't find a room? <a @onclick="() => { roomid = string.Empty; password = string.Empty; CreateRoom = true; }" href="joinroom/true">Create a new room</a> or <span @onclick="GetPublicRooms" class="link">Show all public rooms</span></p>
+                    <MatButton Raised="true" @onclick="JoinNewRoom">Join</MatButton>
+                </div>
+                @if (loading)
+                {
+                    <div style="margin-top: 5px;">
+                        <span style="text-align:left;"><MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Small" Style="padding-top: 5px;" /></span> Joining room...
+                    </div>
+                }
+            </div>
+        </div>
+        if (ShowPublicRooms)
+        {
+            <div style="max-height: 500px; overflow-y:scroll; margin-top: 30px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <Virtualize Context="room" Items="@PublicRooms">
+                            <tr>
+                                <td>@room.Item1</td>
+                                <td>@room.Item2</td>
+                            </tr>
+                        </Virtualize>
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="wrapper">
+            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12 mat-elevation-z5 index-row-item mdc-theme--surface" style="text-align:center; padding: 20px 40px;">
+                <div class="form">
+                    <h4>Create Room</h4>
+                    <MatTextField @bind-Value="@roomname" Label="Room's Name" Required="true"></MatTextField><br />
+                    <MatTextField @bind-Value="@roomid" Label="RoomId" Required="true"></MatTextField><br />
+                    <MatTextField @bind-Value="@password" Label="Password" Type="password" Required="true"></MatTextField><br />
+                    <MatRadioGroup @bind-Value="state">
+                        <MatRadioButton Value="false" Style="padding-bottom: 13px;"></MatRadioButton><span>Private</span>
+                        <MatRadioButton Value="true" Style="padding-bottom: 13px;"></MatRadioButton><span>Public</span>
+                    </MatRadioGroup><br />
+                    <MatButton Raised="true" @onclick="CreateNewRoom">Create</MatButton>
+                </div>
+                @if (loading)
+                {
+                    <div style="margin-top: 5px;">
+                        <span style="text-align:left;"><MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Small" Style="padding-top: 5px;" /></span> Creating new room...
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+}
 
 @code {
+    [Parameter]
+    public bool CreateRoom { get; set; } = false;
+    private bool loading = false;
+    private bool state = false;
+    private bool ShowPublicRooms = false;
+    private string roomname;
+    private string roomid;
+    private string password;
+    private List<Tuple<string, string>> PublicRooms = new();
     protected override void OnInitialized()
     {
         if (!State.logged)
         {
             navigationManager.NavigateTo("/login");
+        }
+    }
+
+    private async Task GetPublicRooms()
+    {
+        if (ShowPublicRooms)
+        {
+            ShowPublicRooms = false;
+        }
+        else
+        {
+            PublicRooms = await Http.GetFromJsonAsync<List<Tuple<string, string>>>("Rooms/rooms");
+            ShowPublicRooms = true;
+        }
+    }
+
+    private async Task JoinNewRoom()
+    {
+        loading = true;
+        var response = await Http.PostAsJsonAsync<string>($"Rooms/join-room/{State.username}/{roomid}", password);
+        var res = await response.Content.ReadAsAsync<SignResult>(new[] { new JsonMediaTypeFormatter() });
+        if (res.success)
+        {
+            loading = false;
+            await MatDialogService.AlertAsync("Successfully joined room");
+        }
+        else
+        {
+            loading = false;
+            await MatDialogService.AlertAsync(res.err);
+        }
+    }
+
+    private async Task CreateNewRoom()
+    {
+        loading = true;
+        Room room = new() { Id = roomid, name = roomname, password = password, state = state };
+        var response = await Http.PostAsJsonAsync<Room>($"Rooms/create-room/{State.username}", room);
+        var res = await response.Content.ReadAsAsync<SignResult>(new[] { new JsonMediaTypeFormatter() });
+        if (res.success)
+        {
+            loading = false;
+            await MatDialogService.AlertAsync("Successfully created new room");
+        }
+        else
+        {
+            loading = false;
+            await MatDialogService.AlertAsync(res.err);
         }
     }
 }

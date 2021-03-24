@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,20 +11,26 @@ namespace ChatApp.Shared
     public class Message
     {
         [BsonId]
+        public ObjectId Id { get; set; }
+
+        [BsonElement("username")]
         public string username { get; set; }
-        [BsonElement("email")]
-        public string email { get; set; }
-        [BsonElement("password")]
-        public string password { get; set; }
-        [BsonElement("connected")]
-        public bool connected { get; set; }
-        [BsonElement("typing")]
-        public bool typing { get; set; }
-        [BsonElement("contacts")]
-        public HashSet<string> contacts = new HashSet<string>();
-        [BsonElement("avatar")]
-        public byte[] avatar { get; set; }
-        [BsonElement("rooms")]
-        public HashSet<string> rooms { get; set; } = new HashSet<string>();
+
+        [BsonElement("content")]
+        public string content { get; set; }
+
+        [BsonElement("time")]
+        public DateTime time { get; set; } = DateTime.Now;
+
+        [BsonElement("received")]
+        public bool received { get; set; } = false;
+
+        [BsonElement("image")]
+        public byte[] image { get; set; }
+
+        public override string ToString()
+        {
+            return $"{username}: {content}";
+        }
     }
 }
