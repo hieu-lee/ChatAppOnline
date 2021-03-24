@@ -1,0 +1,163 @@
+﻿@page "/login"
+@page "/login/{register:bool}"
+@using System.Net.Http.Formatting
+@using ChatApp.Client.Services
+@inject NavigationManager navigationManager
+@inject StateService State
+@inject IMatDialogService MatDialogService
+@inject HttpClient Http
+@if (!State.logged)
+{
+    if (!register)
+    {
+        <div class="wrapper">
+            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12 mat-elevation-z5 index-row-item mdc-theme--surface" style="text-align:center; padding: 20px 40px;">
+                <div class="form">
+                    <h4>Sign In</h4>
+                    <MatTextField @bind-Value="@username" Label="Username" Required="true"></MatTextField><br />
+                    <MatTextField @bind-Value="@password" Label="Password" Type="password" Required="true"></MatTextField><br />
+                    <p>Don't have an account yet? <a @onclick="() => { username = string.Empty; password = string.Empty; }" href="login/true">Register</a></p>
+                    <MatButton Raised="true" @onclick="SignIn">Log In</MatButton>
+                </div>
+                @if (loading)
+                {
+                    <div style="margin-top: 5px;">
+                        <span style="text-align:left;"><MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Small" Style="padding-top: 5px;" /></span> Signing you in...
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        if (!verify)
+        {
+            <div class="wrapper">
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12 mat-elevation-z5 index-row-item mdc-theme--surface" style="text-align:center; padding: 20px 40px;">
+                    <div class="form">
+                        <h4>Sign Up</h4>
+                        <MatTextField @bind-Value="@username" Label="Username" Required="true"></MatTextField><br />
+                        <MatTextField @bind-Value="@password" Label="Password" Type="password" Required="true"></MatTextField><br />
+                        <MatTextField @bind-Value="@email" Label="Email" Required="true"></MatTextField><br />
+                        <MatButton Raised="true" @onclick="SignUp">Sign Up</MatButton>
+                    </div>
+                    @if (loading)
+                    {
+                        <div style="margin-top: 5px;">
+                            <span style="text-align:left;"><MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Small" Style="padding-top: 5px;"/></span> Signing you up...
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="wrapper">
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12 mat-elevation-z5 index-row-item mdc-theme--surface" style="text-align:center; padding: 20px 40px;">
+                    <div class="form">
+                        <h4>Verification Code</h4>
+                        <p>Enter the verification code in your email</p>
+                        <MatTextField @bind-Value="@verificationCode" Label="6-digit code" Required="true"></MatTextField><br />
+                        <MatButton Raised="true" @onclick="SubmitCode">Confirm</MatButton>
+                    </div>
+                    @if (loading)
+                    {
+                        <div style="margin-top: 5px;">
+                            <span style="text-align:left;"><MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Small" Style="padding-top: 5px;" /></span> Verifying code...
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+}
+else
+{
+    <div class="wrapper">
+        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12 mat-elevation-z5 index-row-item mdc-theme--surface" style="text-align:center; padding: 20px 40px;">
+            <h4>You have already logged in as @State.username</h4>
+            <MatButton Raised="true" @onclick="SignOut">Log Out</MatButton>
+        </div>
+    </div>
+}
+
+
+@code {
+    [Parameter]
+    public bool register { get; set; } = false;
+    private bool loading = false;
+    private string username;
+    private string password;
+    private string email;
+    private bool verify = false;
+    private string verificationCode;
+
+    private async Task SignIn()
+    {
+        loading = true;
+        var response = await Http.PostAsJsonAsync<Account>("Accounts/signin", new Account() { username = username, password = password });
+        Console.WriteLine(response.Content.ToString());
+        var res = await response.Content.ReadAsAsync<SignResult>(new[] { new JsonMediaTypeFormatter() });
+        loading = false;
+        if (!res.success)
+        {
+            await MatDialogService.AlertAsync(res.err);
+            return;
+        }
+        else
+        {
+            await MatDialogService.AlertAsync("Successfully logged in");
+            State.logged = true;
+            State.username = username;
+        }
+    }
+
+    private async Task SignUp()
+    {
+        loading = true;
+        var response = await Http.PostAsJsonAsync<Account>($"Accounts/signup", new Account() { username = username, email = email });
+        var res = await response.Content.ReadAsAsync<SignResult>(new[] { new JsonMediaTypeFormatter() });
+        loading = false;
+        if (res.success)
+        {
+            verify = true;
+            return;
+        }
+        await MatDialogService.AlertAsync(res.err);
+        return;
+    }
+
+    private async Task SignOut()
+    {
+        await Http.PutAsJsonAsync<bool>($"Accounts/connection/{State.username}", false);
+        navigationManager.NavigateTo("/login");
+        State.logged = false;
+        State.username = string.Empty;
+        username = string.Empty;
+        password = string.Empty;
+        email = string.Empty;
+    }
+
+    private async Task SubmitCode()
+    {
+        loading = true;
+        var response = await Http.PostAsJsonAsync<int>($"Accounts/verify/{username}", Convert.ToInt32(verificationCode));
+        var res = await response.Content.ReadAsAsync<SignResult>(new[] { new JsonMediaTypeFormatter() });
+        if (res.success)
+        {
+            var signupresponse = await Http.PostAsJsonAsync<Account>("Accounts/verify-signup", new Account() { username = username, connected = true, email = email, password = password });
+            await MatDialogService.AlertAsync("Successfully logged in with your new account");
+            loading = false;
+            State.logged = true;
+            State.username = username;
+            verify = false;
+            return;
+        }
+        else
+        {
+            loading = false;
+            await MatDialogService.AlertAsync(res.err);
+        }
+
+    }
+}
