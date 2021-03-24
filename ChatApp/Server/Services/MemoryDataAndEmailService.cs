@@ -1,6 +1,8 @@
-﻿using FluentEmail.Core;
+﻿using ChatApp.Shared;
+using FluentEmail.Core;
 using FluentEmail.Razor;
 using FluentEmail.Smtp;
+using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +16,8 @@ namespace ChatApp.Server.Services
 {
     public class MemoryDataAndEmailService
     {
+        public Dictionary<string, IMongoDatabase> ChatRooms { get; set; } = new();
+        public Dictionary<string, IMongoCollection<Account>> RoomAccounts { get; set; } = new();
         public Dictionary<string, int> ResetAccounts { get; set; } = new();
         public Dictionary<string, Timer> TimerReset { get; set; } = new();
         public Dictionary<string, Timer> OnlineTrack { get; set; } = new();

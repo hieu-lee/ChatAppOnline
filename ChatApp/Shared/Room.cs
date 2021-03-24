@@ -17,5 +17,7 @@ namespace ChatApp.Shared
         public string password { get; set; }
         [BsonElement("state")]
         public bool state { get; set; } = false;
+        [BsonElement("users")]
+        public HashSet<string> users { get; set; } = new();
     }
 }

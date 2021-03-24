@@ -8,7 +8,7 @@ namespace ChatApp.Shared
         [JsonProperty("success")]
         public bool success { get; set; }
         [JsonProperty("err")]
-        public string err { get; set; } = string.Empty;
+        public string err { get; set; }
         [JsonProperty("avatar")]
         public byte[] avatar { get; set; }
         [JsonProperty("rooms")]
