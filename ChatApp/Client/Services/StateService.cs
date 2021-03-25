@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Net.Http;
+using System.Timers;
 
 namespace ChatApp.Client.Services
 {
@@ -11,5 +10,25 @@ namespace ChatApp.Client.Services
         public string username { get; set; } = string.Empty;
         public byte[] avatar { get; set; }
         public HashSet<string> rooms { get; set; } = new();
+        public string roomid { get; set; }
+        public Timer timer = new(100000);
+        public HttpClient Http { get; set; }
+        public StateService(HttpClient Http)
+        {
+            this.Http = Http;
+            timer.Elapsed += async (s, e) =>
+            {
+                if (logged)
+                {
+                    await Http.PutAsJsonAsync<bool>($"Accounts/connection/{username}", true);
+                    return;
+                }
+                else
+                {
+                    timer.Enabled = false;
+                    timer.Close();
+                }
+            };
+        }
     }
 }

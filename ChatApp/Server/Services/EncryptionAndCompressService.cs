@@ -75,6 +75,10 @@ namespace ChatApp.Server.Services
 
         public byte[] Compress(byte[] data)
         {
+            if (data is null)
+            {
+                return null;
+            }
             MemoryStream output = new MemoryStream();
             using (DeflateStream dstream = new DeflateStream(output, CompressionLevel.Optimal))
             {

@@ -74,6 +74,7 @@ namespace ChatApp.Server.Controllers
                 }
                 else
                 {
+                    room.password = string.Empty;
                     var userfilter = Builders<Account>.Filter.Eq("_id", username);
                     var userupdate = Builders<Account>.Update.AddToSet<string>("rooms", roomid);
                     var update = Builders<Room>.Update.Set("users", room.users);

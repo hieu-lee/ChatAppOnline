@@ -67,7 +67,7 @@ namespace ChatApp.Server.Controllers
             acc.password = encryptService.Encrypt(acc.password);
             var task2 = accounts.UpdateOneAsync(filter, update);
             var task3 = accounts.InsertOneAsync(acc);
-            memoryService.OnlineTrack[acc.username] = new(600000);
+            memoryService.OnlineTrack[acc.username] = new(300000);
             memoryService.OnlineTrack[acc.username].Elapsed += (s, e) =>
             {
                 var filter = Builders<Account>.Filter.Eq("_id", acc.username);
@@ -77,6 +77,7 @@ namespace ChatApp.Server.Controllers
                 memoryService.OnlineTrack.Remove(acc.username);
                 memoryService.OnlineTrack[acc.username].Close();
             };
+            memoryService.OnlineTrack[acc.username].Enabled = true;
             await task2;
             await task3;
         }
@@ -96,7 +97,7 @@ namespace ChatApp.Server.Controllers
                         return new SignResult() { success = false, err = "Your account has already been online" };
                     }
                     var task = accounts.UpdateOneAsync(filter, update);
-                    memoryService.OnlineTrack[acc.username] = new(600000);
+                    memoryService.OnlineTrack[acc.username] = new(300000);
                     memoryService.OnlineTrack[acc.username].Elapsed += (s, e) =>
                     {
                         var filter = Builders<Account>.Filter.Eq("_id", acc.username);
@@ -106,6 +107,7 @@ namespace ChatApp.Server.Controllers
                         memoryService.OnlineTrack.Remove(acc.username);
                         memoryService.OnlineTrack[acc.username].Close();
                     };
+                    memoryService.OnlineTrack[acc.username].Enabled = true;
                     await task;
                     return new SignResult() { success = true, avatar = myacc.avatar, rooms = myacc.rooms };
                 }
@@ -144,7 +146,7 @@ namespace ChatApp.Server.Controllers
                 var filter = Builders<Account>.Filter.Eq("_id", username);
                 var update = Builders<Account>.Update.Set("connected", true);
                 accounts.UpdateOne(filter, update);
-                memoryService.OnlineTrack[username] = new(600000);
+                memoryService.OnlineTrack[username] = new(300000);
                 memoryService.OnlineTrack[username].Elapsed += async (s, e) =>
                 {
                     var filter = Builders<Account>.Filter.Eq("_id", username);
@@ -163,7 +165,7 @@ namespace ChatApp.Server.Controllers
             {
                 memoryService.OnlineTrack[username].Stop();
                 memoryService.OnlineTrack[username].Close();
-                memoryService.OnlineTrack[username] = new(600000);
+                memoryService.OnlineTrack[username] = new(300000);
                 memoryService.OnlineTrack[username].Elapsed += async (s, e) =>
                 {
                     var filter = Builders<Account>.Filter.Eq("_id", username);
@@ -176,6 +178,7 @@ namespace ChatApp.Server.Controllers
                     memoryService.OnlineTrack[username].Close();
                     await task;
                 };
+                memoryService.OnlineTrack[username].Enabled = true;
                 return;
             }
             else

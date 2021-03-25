@@ -74,7 +74,7 @@
 else
 {
     <div class="wrapper">
-        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12 mat-elevation-z5 index-row-item mdc-theme--surface" style="text-align:center; padding: 20px 40px;">
+        <div style="text-align:center; padding: 20px 40px;">
             <h4>You have already logged in as @State.username</h4>
             <MatButton Raised="true" @onclick="SignOut">Log Out</MatButton>
         </div>
@@ -111,6 +111,7 @@ else
             State.username = username;
             State.avatar = res.avatar;
             State.rooms = res.rooms;
+            State.timer.Enabled = true;
         }
     }
 
@@ -131,6 +132,8 @@ else
 
     private async Task SignOut()
     {
+        State.timer.Enabled = false;
+        State.timer.Close();
         await Http.PutAsJsonAsync<bool>($"Accounts/connection/{State.username}", false);
         navigationManager.NavigateTo("/login");
         State.logged = false;
@@ -153,6 +156,7 @@ else
             State.logged = true;
             State.username = username;
             verify = false;
+            State.timer.Enabled = true;
             return;
         }
         else
