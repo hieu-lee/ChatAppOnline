@@ -20,6 +20,7 @@ namespace ChatApp.Client
             builder.Services.AddSingleton(s => {
                 return new StateService(new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
             });
+            builder.Services.AddSingleton<BrowserService>();
             builder.RootComponents.Add<App>("#app");
             builder.Services.AddMatBlazor();
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });

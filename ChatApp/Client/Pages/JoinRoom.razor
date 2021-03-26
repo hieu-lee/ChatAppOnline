@@ -117,7 +117,8 @@
         if (res.success)
         {
             loading = false;
-            await MatDialogService.AlertAsync("Successfully joined room");
+            State.roomid = roomid;
+            navigationManager.NavigateTo("/chat-room");
         }
         else
         {
@@ -135,7 +136,8 @@
         if (res.success)
         {
             loading = false;
-            await MatDialogService.AlertAsync("Successfully created new room");
+            State.roomid = roomid;
+            navigationManager.NavigateTo("/chat-room");
         }
         else
         {

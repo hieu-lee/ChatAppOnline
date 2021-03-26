@@ -1,6 +1,7 @@
 ﻿using ChatApp.Server.Services;
 using ChatApp.Shared;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -41,14 +42,32 @@ namespace ChatApp.Server.Controllers
             return res;
         }
 
-        [HttpGet("messages/{roomid}")]
-        public List<Message> GetMessages(string roomid)
+        [HttpGet("messages/{roomid}/{username}")]
+        public async Task<List<Message>> GetMessages(string roomid, string username)
         {
+            var filter = Builders<Message>.Filter.Empty;
+            var task = memoryService.ChatRooms[roomid].GetCollection<Message>(username).DeleteManyAsync(filter);
             var res = memoryService.RoomMessages[roomid].Find(s => true).ToList();
             res.Sort();
             foreach (Message m in res)
             {
                 m.content = encryptService.Decrypt(m.content);
+            }
+            await task;
+            return res;
+        }
+
+        [HttpGet("new-message/{roomid}/{username}")]
+        public Message GetNewMessage(string roomid, string username)
+        {
+            var update = Builders<Message>.Update.Set("received", true);
+            var myinbox = memoryService.ChatRooms[roomid].GetCollection<Message>(username);
+            var res = myinbox.Find(s => !s.received).FirstOrDefault();
+            if (res is not null)
+            {
+                res.content = encryptService.Decrypt(res.content);
+                var filterupdate = Builders<Message>.Filter.Eq("_id", res.Id);
+                myinbox.UpdateOneAsync(filterupdate, update);
             }
             return res;
         }
@@ -85,7 +104,7 @@ namespace ChatApp.Server.Controllers
                             var usermesstask = memoryService.ChatRooms[roomid].CreateCollectionAsync(username);
                             var usertask = accounts.UpdateOneAsync(userfilter, userupdate);
                             room.users.Add(username);
-                            var task = memoryService.RoomAccounts[roomid].InsertOneAsync(new Account() { username = username, connected = true });
+                            var task = memoryService.RoomAccounts[roomid].InsertOneAsync(new Account() { username = username, connected = false });
                             var task1 = rooms.UpdateOneAsync(filter, update);
                             memoryService.ChatRooms[roomid].CreateCollection(username);
                             await usermesstask;
@@ -98,7 +117,7 @@ namespace ChatApp.Server.Controllers
                     }
                     var usertask1 = accounts.UpdateOneAsync(userfilter, userupdate);
                     room.users.Add(username);
-                    var task2 = memoryService.RoomAccounts[roomid].InsertOneAsync(new Account() { username = username, connected = true });
+                    var task2 = memoryService.RoomAccounts[roomid].InsertOneAsync(new Account() { username = username, connected = false });
                     var task3 = rooms.UpdateOneAsync(filter, update);
                     memoryService.ChatRooms[roomid].CreateCollection(username);
                     await usertask1;
@@ -139,7 +158,7 @@ namespace ChatApp.Server.Controllers
                 var roommess = await task3;
                 memoryService.RoomAccounts[room.Id] = roomacc;
                 memoryService.RoomMessages[room.Id] = roommess;
-                roomacc.InsertOne(new Account() { username = username, connected = true });
+                roomacc.InsertOne(new Account() { username = username, connected = false });
                 await usertask;
                 await task;
                 await task2;
@@ -150,6 +169,7 @@ namespace ChatApp.Server.Controllers
         [HttpPost("send-message/{username}/{roomid}")]
         public async Task SendMessage(string username, string roomid, [FromBody] Message message)
         {
+            message.Id = ObjectId.GenerateNewId().ToString();
             message.content = encryptService.Encrypt(message.content);
             var task = memoryService.RoomMessages[roomid].InsertOneAsync(message);
             var room = rooms.Find(s => s.Id == roomid).FirstOrDefault();

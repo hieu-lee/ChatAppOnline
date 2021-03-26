@@ -1,5 +1,80 @@
-﻿<h3>ChatRoom</h3>
+﻿@page "/chat-room"
+@using ChatApp.Client.Services
+@using System.Timers
+@inject BrowserService browserService
+@inject StateService State
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+
+
+<div class="chatarea" style="height:@((browserHeight-90.6).ToString())px; width: 100%; overflow-y:scroll;">
+    <Virtualize Items="messages" Context="message">
+        @if (message.username != State.username)
+        {
+            <Incoming user="@message.username" content="@message.content"></Incoming>
+        }
+        else
+        {
+            <Outgoing user="@message.username" content="@message.content"></Outgoing>
+        }
+    </Virtualize>
+</div>
+<div class="holder" style="display:flex; justify-content:space-between; width: 100%">
+    <MatTextField @bind-Value="newContent" PlaceHolder="Aa" FullWidth="true" Style="border-radius: 10px;"></MatTextField>
+    <MatButton Unelevated="true" @onclick="SendMessage">Send</MatButton>
+</div>
 
 @code {
+    private int browserWidth;
+    private int browserHeight;
+    private string newContent;
+    private List<Message> messages = new();
+    private HashSet<string> receivedMessage = new();
+    private Timer timer = new(300);
 
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(State.roomid))
+        {
+            timer.Elapsed += (s, e) => { InvokeAsync(UpdateMessage); };
+            var dimension = await browserService.GetDimensions();
+            browserWidth = dimension.Width;
+            browserHeight = dimension.Height;
+            messages = await Http.GetFromJsonAsync<List<Message>>($"Rooms/messages/{State.roomid}/{State.username}");
+            timer.Enabled = true;
+        }
+        else
+        {
+            navigationManager.NavigateTo("/joinroom");
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (!string.IsNullOrWhiteSpace(newContent))
+        {
+            newContent = newContent.Trim();
+            Message message = new() { username = State.username, content = newContent };
+            messages.Add(message);
+            newContent = string.Empty;
+            StateHasChanged();
+            await Http.PostAsJsonAsync<Message>($"Rooms/send-message/{State.username}/{State.roomid}", message);
+        }
+    }
+
+    private async void UpdateMessage()
+    {
+        Message newMessage = null;
+        try
+        {
+            newMessage = await Http.GetFromJsonAsync<Message>($"Rooms/new-message/{State.roomid}/{State.username}");
+        }
+        catch (Exception) { }
+        if (newMessage is not null && !receivedMessage.Contains(newMessage.Id))
+        {
+            messages.Add(newMessage);
+            StateHasChanged();
+            receivedMessage.Add(newMessage.Id);
+        }
+    }
 }
