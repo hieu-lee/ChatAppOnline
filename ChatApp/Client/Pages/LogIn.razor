@@ -2,6 +2,7 @@
 @page "/login/{register:bool}"
 @using System.Net.Http.Formatting
 @using ChatApp.Client.Services
+@using System.Text.RegularExpressions
 @inject NavigationManager navigationManager
 @inject StateService State
 @inject IMatDialogService MatDialogService
@@ -38,13 +39,14 @@
                         <h4>Sign Up</h4>
                         <MatTextField @bind-Value="@username" Label="Username" Required="true"></MatTextField><br />
                         <MatTextField @bind-Value="@password" Label="Password" Type="password" Required="true"></MatTextField><br />
+                        <MatTextField @bind-Value="@ConfirmPassword" Label="Confirm Password" Type="password" Required="true"></MatTextField><br />
                         <MatTextField @bind-Value="@email" Label="Email" Required="true"></MatTextField><br />
                         <MatButton Raised="true" @onclick="SignUp">Sign Up</MatButton>
                     </div>
                     @if (loading)
                     {
                         <div style="margin-top: 5px;">
-                            <span style="text-align:left;"><MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Small" Style="padding-top: 5px;"/></span> Signing you up...
+                            <span style="text-align:left;"><MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Small" Style="padding-top: 5px;" /></span> Signing you up...
                         </div>
                     }
                 </div>
@@ -86,9 +88,10 @@ else
     [Parameter]
     public bool register { get; set; } = false;
     private bool loading = false;
-    private string username;
-    private string password;
-    private string email;
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private string ConfirmPassword = string.Empty;
+    private string email = string.Empty;
     private bool verify = false;
     private string verificationCode;
 
@@ -100,6 +103,11 @@ else
     private async Task SignIn()
     {
         loading = true;
+        if (!string.IsNullOrWhiteSpace(password) || password.Length < 6 || password.Length > 15)
+        {
+            await MatDialogService.AlertAsync("Invalid password");
+            return;
+        }
         var response = await Http.PostAsJsonAsync<Account>("Accounts/signin", new Account() { username = username, password = password });
         Console.WriteLine(response.Content.ToString());
         var res = await response.Content.ReadAsAsync<SignResult>(new[] { new JsonMediaTypeFormatter() });
@@ -120,9 +128,61 @@ else
         }
     }
 
+    private bool ValidatePassword()
+    {
+        if (!string.IsNullOrWhiteSpace(password) || password.Length < 6 || password.Length > 15)
+        {
+            return false;
+        }
+        return (password == ConfirmPassword);
+    }
+
+    private bool ValidateUsername()
+    {
+        var check = username.ToHashSet();
+        foreach (char c in " !@#$%^&*()+{}[];,./|")
+        {
+            if (check.Contains(c))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private bool ValidateEmail()
+    {
+        email = email.Trim();
+        Regex regex = new Regex(@"^([\w\.\-]+)@([\w\-]+)((\.(\w){2,3})+)$");
+        Match match = regex.Match(email);
+        if (match.Success)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
     private async Task SignUp()
     {
         loading = true;
+        if (!ValidateUsername())
+        {
+            await MatDialogService.AlertAsync("Invalid username, your username must not contain special characters");
+            return;
+        }
+        if (!ValidatePassword())
+        {
+            await MatDialogService.AlertAsync("Invalid password, your password must not be empty, has length less than 6\nor different from your confirmation");
+            return;
+        }
+        if (!ValidateEmail())
+        {
+            await MatDialogService.AlertAsync("Invalid email, please enter a valid email address");
+            return;
+        }
         var response = await Http.PostAsJsonAsync<Account>($"Accounts/signup", new Account() { username = username, email = email });
         var res = await response.Content.ReadAsAsync<SignResult>(new[] { new JsonMediaTypeFormatter() });
         loading = false;
