@@ -59,6 +59,7 @@
                     <div class="form">
                         <h4>Verification Code</h4>
                         <p>Enter the verification code in your email</p>
+                        Haven't found your code? <span id="link" @onclick="ResendCode">Resend code</span>
                         <MatTextField @bind-Value="@verificationCode" Label="6-digit code" Required="true"></MatTextField><br />
                         <MatButton Raised="true" @onclick="SubmitCode">Confirm</MatButton>
                     </div>
@@ -175,7 +176,7 @@ else
         }
         if (!ValidatePassword())
         {
-            await MatDialogService.AlertAsync("Invalid password, your password must not be empty, has length less than 6\nor different from your confirmation");
+            await MatDialogService.AlertAsync("Invalid password, your password must not be empty, has length less than 6 characters\nor different from your confirmation");
             return;
         }
         if (!ValidateEmail())
@@ -206,6 +207,12 @@ else
         username = string.Empty;
         password = string.Empty;
         email = string.Empty;
+    }
+
+    private async Task ResendCode()
+    {
+        await Http.PostAsJsonAsync<string>($"Accounts/sendcode/{username}", email);
+        await MatDialogService.AlertAsync("Your code has been successfully resent, please check your email");
     }
 
     private async Task SubmitCode()

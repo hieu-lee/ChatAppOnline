@@ -128,9 +128,32 @@
         }
     }
 
+    private bool RoomIdCheck()
+    {
+        var check = "1234567890".ToHashSet();
+        if (roomid.Length != 6)
+        {
+            return false;
+        }
+        foreach (char c in roomid)
+        {
+            return false;
+        }
+        return true;
+    }
+
     private async Task CreateNewRoom()
     {
         loading = true;
+        if (!string.IsNullOrWhiteSpace(password) || password.Length < 6 || password.Length > 15)
+        {
+            await MatDialogService.AlertAsync("Invalid password, your password must not be empty, has length less than 6 characters");
+            return;
+        }
+        if (!RoomIdCheck())
+        {
+            await MatDialogService.AlertAsync("Invalid RoomId, your RoomId must be a 6-digit code");
+        }
         Room room = new() { Id = roomid, name = roomname, password = password, state = state };
         var response = await Http.PostAsJsonAsync<Room>($"Rooms/create-room/{State.username}", room);
         var res = await response.Content.ReadAsAsync<SignResult>(new[] { new JsonMediaTypeFormatter() });
