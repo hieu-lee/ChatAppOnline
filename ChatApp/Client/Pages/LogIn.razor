@@ -92,6 +92,11 @@ else
     private bool verify = false;
     private string verificationCode;
 
+    protected override void OnInitialized()
+    {
+        State.updateTimer.Enabled = false;
+    }
+
     private async Task SignIn()
     {
         loading = true;

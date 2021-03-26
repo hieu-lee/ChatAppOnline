@@ -1,13 +1,12 @@
 ﻿@page "/chat-room"
 @using ChatApp.Client.Services
-@using System.Timers
 @inject BrowserService browserService
 @inject StateService State
 @inject HttpClient Http
 @inject NavigationManager navigationManager
 
 
-<div class="chatarea" style="height:@((browserHeight-90.6).ToString())px; width: 100%; overflow-y:scroll;">
+<div class="chatarea" style="height:@State.chatAreaHeight.ToString()px; width: 100%; overflow-y:scroll;">
     <Virtualize Items="messages" Context="message">
         @if (message.username != State.username)
         {
@@ -26,22 +25,27 @@
 
 @code {
     private int browserWidth;
-    private int browserHeight;
     private string newContent;
     private List<Message> messages = new();
     private HashSet<string> receivedMessage = new();
-    private Timer timer = new(300);
 
     protected override async Task OnInitializedAsync()
     {
         if (!string.IsNullOrWhiteSpace(State.roomid))
         {
-            timer.Elapsed += (s, e) => { InvokeAsync(UpdateMessage); };
+            State.updateTimer.Elapsed += (s, e) => { InvokeAsync(UpdateMessage); };
             var dimension = await browserService.GetDimensions();
             browserWidth = dimension.Width;
-            browserHeight = dimension.Height;
+            if (browserWidth > 640)
+            {
+                State.chatAreaHeight = dimension.Height - 91;
+            }
+            else
+            {
+                State.chatAreaHeight = dimension.Height - 56 - 91;
+            }
             messages = await Http.GetFromJsonAsync<List<Message>>($"Rooms/messages/{State.roomid}/{State.username}");
-            timer.Enabled = true;
+            State.updateTimer.Enabled = true;
         }
         else
         {

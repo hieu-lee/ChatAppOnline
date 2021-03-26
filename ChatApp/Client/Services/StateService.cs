@@ -12,7 +12,9 @@ namespace ChatApp.Client.Services
         public HashSet<string> rooms { get; set; } = new();
         public string roomid { get; set; }
         public Timer timer = new(100000);
+        public int chatAreaHeight { get; set; }
         public HttpClient Http { get; set; }
+        public Timer updateTimer { get; set; } = new(250);
         public StateService(HttpClient Http)
         {
             this.Http = Http;

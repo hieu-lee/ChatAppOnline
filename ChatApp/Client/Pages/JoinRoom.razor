@@ -84,12 +84,13 @@
     private bool loading = false;
     private bool state = false;
     private bool ShowPublicRooms = false;
-    private string roomname;
-    private string roomid;
-    private string password;
+    private string roomname = string.Empty;
+    private string roomid = string.Empty;
+    private string password = string.Empty;
     private List<Tuple<string, string>> PublicRooms = new();
     protected override void OnInitialized()
     {
+        State.updateTimer.Enabled = false;
         if (!State.logged)
         {
             navigationManager.NavigateTo("/login");

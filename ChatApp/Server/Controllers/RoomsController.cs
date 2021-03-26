@@ -6,6 +6,7 @@ using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ChatApp.Server.Controllers
@@ -79,6 +80,12 @@ namespace ChatApp.Server.Controllers
             var room = rooms.Find(filter).FirstOrDefault();
             if (room is not null)
             {
+                if (!memoryService.ChatRooms.ContainsKey(room.Id))
+                {
+                    memoryService.ChatRooms[room.Id] = client.GetDatabase(room.Id);
+                    memoryService.RoomAccounts[room.Id] = memoryService.ChatRooms[room.Id].GetCollection<Account>("accounts");
+                    memoryService.RoomMessages[room.Id] = memoryService.ChatRooms[room.Id].GetCollection<Message>("messages");
+                }
                 if (room.users.Contains(username))
                 {
                     if (!room.state)

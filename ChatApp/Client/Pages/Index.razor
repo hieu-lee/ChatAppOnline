@@ -9,6 +9,7 @@
 @code {      
     protected override void OnInitialized()
     {
+        State.updateTimer.Enabled = false;
         if (!State.logged)
         {
             navigationManager.NavigateTo("/login");
