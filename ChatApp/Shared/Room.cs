@@ -19,5 +19,14 @@ namespace ChatApp.Shared
         public bool state { get; set; } = false;
         [BsonElement("users")]
         public HashSet<string> users { get; set; } = new();
+        public override bool Equals(object obj)
+        {
+            var otherRoom = (Room)obj;
+            return Id.Equals(otherRoom.Id);
+        }
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
     }
 }

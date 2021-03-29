@@ -59,7 +59,7 @@
                     <div class="form">
                         <h4>Verification Code</h4>
                         <p>Enter the verification code in your email</p>
-                        Haven't found your code? <span id="link" @onclick="ResendCode">Resend code</span>
+                        Haven't found your code? <span id="link" @onclick="ResendCode">Resend code</span><br />
                         <MatTextField @bind-Value="@verificationCode" Label="6-digit code" Required="true"></MatTextField><br />
                         <MatButton Raised="true" @onclick="SubmitCode">Confirm</MatButton>
                     </div>
@@ -98,14 +98,15 @@ else
 
     protected override void OnInitialized()
     {
-        State.updateTimer.Enabled = false;
+        State.updateTimer.Stop();
     }
 
     private async Task SignIn()
     {
         loading = true;
-        if (!string.IsNullOrWhiteSpace(password) || password.Length < 6 || password.Length > 15)
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 6 || password.Length > 15)
         {
+            loading = false;
             await MatDialogService.AlertAsync("Invalid password");
             return;
         }
@@ -131,7 +132,7 @@ else
 
     private bool ValidatePassword()
     {
-        if (!string.IsNullOrWhiteSpace(password) || password.Length < 6 || password.Length > 15)
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 6 || password.Length > 15)
         {
             return false;
         }
@@ -171,16 +172,19 @@ else
         loading = true;
         if (!ValidateUsername())
         {
+            loading = false;
             await MatDialogService.AlertAsync("Invalid username, your username must not contain special characters");
             return;
         }
         if (!ValidatePassword())
         {
+            loading = false;
             await MatDialogService.AlertAsync("Invalid password, your password must not be empty, has length less than 6 characters\nor different from your confirmation");
             return;
         }
         if (!ValidateEmail())
         {
+            loading = false;
             await MatDialogService.AlertAsync("Invalid email, please enter a valid email address");
             return;
         }

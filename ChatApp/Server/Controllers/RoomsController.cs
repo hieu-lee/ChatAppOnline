@@ -48,13 +48,17 @@ namespace ChatApp.Server.Controllers
         {
             var filter = Builders<Message>.Filter.Empty;
             var task = memoryService.ChatRooms[roomid].GetCollection<Message>(username).DeleteManyAsync(filter);
-            var res = memoryService.RoomMessages[roomid].Find(s => true).ToList();
+            var res = memoryService.RoomMessages[roomid].Find(filter).ToList();
             res.Sort();
             foreach (Message m in res)
             {
                 m.content = encryptService.Decrypt(m.content);
             }
             await task;
+            if (res is not null)
+            {
+                return res;
+            }
             return res;
         }
 
@@ -71,6 +75,37 @@ namespace ChatApp.Server.Controllers
                 myinbox.UpdateOneAsync(filterupdate, update);
             }
             return res;
+        }
+
+        [HttpPost("load-messages/{username}/{roomid}")]
+        public async Task<Tuple<List<Message>, DateTime>> LoadMessages(string roomid, string username, [FromBody] DateTime checkpoint)
+        {
+            var filter = Builders<Message>.Filter.Empty;
+            var task = memoryService.ChatRooms[roomid].GetCollection<Message>(username).DeleteManyAsync(filter);
+            var res = memoryService.RoomMessages[roomid].Find(s => s.time < checkpoint).ToList();
+            res.Sort();
+            foreach (Message m in res)
+            {
+                m.content = encryptService.Decrypt(m.content);
+            }
+            await task;
+            if (res is not null)
+            {
+                res = res.GetRange(0, 51);
+                return new Tuple<List<Message>, DateTime>(res, res[0].time);
+            }
+            return new Tuple<List<Message>, DateTime>(res, DateTime.Now);
+        }
+
+        [HttpPost("inject-memory")]
+        public void InjectRoomToMemory([FromBody] string roomid)
+        {
+            if (!memoryService.ChatRooms.ContainsKey(roomid))
+            {
+                memoryService.ChatRooms[roomid] = client.GetDatabase(roomid);
+                memoryService.RoomAccounts[roomid] = memoryService.ChatRooms[roomid].GetCollection<Account>("accounts");
+                memoryService.RoomMessages[roomid] = memoryService.ChatRooms[roomid].GetCollection<Message>("messages");
+            }
         }
 
         [HttpPost("join-room/{username}/{roomid}")]

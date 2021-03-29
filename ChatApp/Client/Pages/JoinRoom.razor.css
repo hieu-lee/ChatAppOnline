@@ -1,14 +1,14 @@
-﻿#link {
+﻿.link {
     color: #0366d6;
     cursor: pointer;
 }
 
-#link:hover {
+.link:hover {
     text-decoration: underline;
 }
 
 .wrapper {
-    margin-top: 100px;
+    margin-top: 50px;
     display: flex;
     justify-content: center;
 }

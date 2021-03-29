@@ -13,5 +13,6 @@ namespace ChatApp.Shared
         public byte[] avatar { get; set; }
         [JsonProperty("rooms")]
         public HashSet<string> rooms { get; set; }
+        public string roomName { get; set; }
     }
 }

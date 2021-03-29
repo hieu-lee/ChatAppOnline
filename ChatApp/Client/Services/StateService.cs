@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using ChatApp.Shared;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Timers;
 
@@ -15,6 +16,8 @@ namespace ChatApp.Client.Services
         public int chatAreaHeight { get; set; }
         public HttpClient Http { get; set; }
         public Timer updateTimer { get; set; } = new(250);
+
+        public bool timerInit = false;
         public StateService(HttpClient Http)
         {
             this.Http = Http;

@@ -1,55 +1,92 @@
 ﻿@page "/chat-room"
 @using ChatApp.Client.Services
+@using System.Timers
 @inject BrowserService browserService
 @inject StateService State
 @inject HttpClient Http
 @inject NavigationManager navigationManager
+@inject IJSRuntime JsRuntime
 
-
-<div class="chatarea" style="height:@State.chatAreaHeight.ToString()px; width: 100%; overflow-y:scroll;">
+<div @ref="chatArea" class="chatarea" style="height:@State.chatAreaHeight.ToString()px; width: 100%; overflow-y:scroll;">
     <Virtualize Items="messages" Context="message">
-        @if (message.username != State.username)
-        {
-            <Incoming user="@message.username" content="@message.content"></Incoming>
-        }
-        else
-        {
-            <Outgoing user="@message.username" content="@message.content"></Outgoing>
-        }
+        <Bubble user="@message.username" content="@message.content"></Bubble>
     </Virtualize>
 </div>
+<hr />
 <div class="holder" style="display:flex; justify-content:space-between; width: 100%">
-    <MatTextField @bind-Value="newContent" PlaceHolder="Aa" FullWidth="true" Style="border-radius: 10px;"></MatTextField>
+    <MatTextField @bind-Value="newContent" PlaceHolder="Aa" FullWidth="true" Style="border-radius: 10px;" @onkeyup="SendMessageEnter"></MatTextField>
     <MatButton Unelevated="true" @onclick="SendMessage">Send</MatButton>
 </div>
 
 @code {
+    private Timer timerScroll = new(100);
+    private Timer timer = new(300);
+    private IJSObjectReference module;
+    private ElementReference chatArea;
+    private DateTime checkpoint;
     private int browserWidth;
     private string newContent;
     private List<Message> messages = new();
     private HashSet<string> receivedMessage = new();
 
+    private async void ScrollToBottom()
+    {
+        await module.InvokeVoidAsync("ScrollToBottom", chatArea);
+        timer.Stop();
+        StateHasChanged();
+    }
+
+    private async void ScrollToBottomFast()
+    {
+        await module.InvokeVoidAsync("ScrollToBottom", chatArea);
+        timerScroll.Stop();
+        StateHasChanged();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         if (!string.IsNullOrWhiteSpace(State.roomid))
         {
-            State.updateTimer.Elapsed += (s, e) => { InvokeAsync(UpdateMessage); };
+            timerScroll.Elapsed += (s, e) => { ScrollToBottomFast(); };
+            timer.Elapsed += (s, e) => { ScrollToBottom(); };
+            var task = JsRuntime.InvokeAsync<IJSObjectReference>("import", "./Utils.js");
+            if (!State.timerInit)
+            {
+                State.updateTimer.Elapsed += (s, e) => { InvokeAsync(UpdateMessage); };
+                State.timerInit = true;
+            }
             var dimension = await browserService.GetDimensions();
             browserWidth = dimension.Width;
             if (browserWidth > 640)
             {
-                State.chatAreaHeight = dimension.Height - 91;
+                State.chatAreaHeight = dimension.Height - 116;
             }
             else
             {
-                State.chatAreaHeight = dimension.Height - 56 - 91;
+                State.chatAreaHeight = dimension.Height - 56 - 116;
             }
             messages = await Http.GetFromJsonAsync<List<Message>>($"Rooms/messages/{State.roomid}/{State.username}");
-            State.updateTimer.Enabled = true;
+            module = await task;
+            timer.Start();
+            State.updateTimer.Start();
         }
         else
         {
             navigationManager.NavigateTo("/joinroom");
+        }
+    }
+
+    private async void SendMessageEnter(KeyboardEventArgs e)
+    {
+        if ((e.Code == "Enter" || e.Code == "NumpadEnter") && !e.ShiftKey && !string.IsNullOrWhiteSpace(newContent))
+        {
+            newContent = newContent.Trim();
+            Message message = new() { username = State.username, content = newContent };
+            messages.Add(message);
+            newContent = string.Empty;
+            StateHasChanged();
+            timerScroll.Start();
+            await Http.PostAsJsonAsync<Message>($"Rooms/send-message/{State.username}/{State.roomid}", message);
         }
     }
 
@@ -62,6 +99,7 @@
             messages.Add(message);
             newContent = string.Empty;
             StateHasChanged();
+            timerScroll.Start();
             await Http.PostAsJsonAsync<Message>($"Rooms/send-message/{State.username}/{State.roomid}", message);
         }
     }
@@ -78,6 +116,7 @@
         {
             messages.Add(newMessage);
             StateHasChanged();
+            timerScroll.Start();
             receivedMessage.Add(newMessage.Id);
         }
     }

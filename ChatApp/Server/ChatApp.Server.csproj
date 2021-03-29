@@ -4,6 +4,7 @@
     <TargetFramework>net5.0</TargetFramework>
     <PreserveCompilationReferences>true</PreserveCompilationReferences>
 	<PreserveCompilationContext>true</PreserveCompilationContext>
+	<UserSecretsId>8740f43d-83b7-4d6a-8dfc-0f2c1ca0623b</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,26 @@
+﻿@using ChatApp.Client.Services
+@inject StateService State
+
+@if (user == State.username)
+{
+    <div style="display: flex; justify-content:flex-end; width: 100%;">
+        <div class="me" style="text-align:left;">
+            <b>@user</b><br />@content
+        </div>
+    </div> 
+}
+else
+{
+    <div style="display: flex; justify-content:flex-start; width: 100%;">
+        <div class="him">
+            <b>@user</b><br />@content
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string user { get; set; }
+    [Parameter]
+    public string content { get; set; }
+}

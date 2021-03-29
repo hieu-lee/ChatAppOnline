@@ -13,20 +13,33 @@
     if (!CreateRoom)
     {
         <div class="wrapper">
-            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12 mat-elevation-z5 index-row-item mdc-theme--surface" style="text-align:center; padding: 20px 40px;">
+            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12 mat-elevation-z5 index-row-item mdc-theme--surface" style=" display: flex; text-align:center; padding: 20px 40px;">
                 <div class="form">
-                    <h4>Join Room</h4>
-                    <MatTextField @bind-Value="@roomid" Label="RoomId" Required="true"></MatTextField><br />
-                    <MatTextField @bind-Value="@password" Label="Password" Type="password" Required="false"></MatTextField><br />
-                    <p>Can't find a room? <a @onclick="() => { roomid = string.Empty; password = string.Empty; CreateRoom = true; }" href="joinroom/true">Create a new room</a> or <span @onclick="GetPublicRooms" id="link">Show all public rooms</span></p>
-                    <MatButton Raised="true" @onclick="JoinNewRoom">Join</MatButton>
-                </div>
-                @if (loading)
-                {
-                    <div style="margin-top: 5px;">
-                        <span style="text-align:left;"><MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Small" Style="padding-top: 5px;" /></span> Joining room...
+                    <div class="room-join">
+                        <h4>Join Room</h4>
+                        <MatTextField @bind-Value="@roomid" Label="RoomId" Required="true"></MatTextField><br />
+                        <MatTextField @bind-Value="@password" Label="Password" Type="password" Required="false"></MatTextField><br />
+                        <p>Can't find a room? <a @onclick="() => { roomid = string.Empty; password = string.Empty; CreateRoom = true; }" href="joinroom/true">Create a new room</a> or <span @onclick="GetPublicRooms" class="link">Show all public rooms</span></p>
+                        <MatButton Raised="true" @onclick="JoinNewRoom">Join</MatButton>
                     </div>
-                }
+                    @if (loading)
+                    {
+                        <div style="margin-top: 5px;">
+                            <span style="text-align:left;"><MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Small" Style="padding-top: 5px;" /></span> Joining room...
+                        </div>
+                    }
+                </div>
+                <div class="room-list" style="margin-left: 10px; padding-left: 38px; border-left: 1px solid grey;">
+                    <h4 style="text-align:center;">Your rooms</h4>
+                    <ul style="max-height: 220px; overflow-y: scroll;">
+                        <Virtualize Items="State.rooms" Context="room">
+                            <li style="list-style: none;">
+                                <span class="link" @onclick="() => { JoinOldRoom(room); }">@room</span>
+                            </li>
+                            <hr />
+                        </Virtualize>
+                    </ul>
+                </div>
             </div>
         </div>
         if (ShowPublicRooms)
@@ -90,7 +103,7 @@
     private List<Tuple<string, string>> PublicRooms = new();
     protected override void OnInitialized()
     {
-        State.updateTimer.Enabled = false;
+        State.updateTimer.Stop();
         if (!State.logged)
         {
             navigationManager.NavigateTo("/login");
@@ -118,6 +131,7 @@
         if (res.success)
         {
             loading = false;
+            State.rooms.Add(roomid);
             State.roomid = roomid;
             navigationManager.NavigateTo("/chat-room");
         }
@@ -137,22 +151,39 @@
         }
         foreach (char c in roomid)
         {
-            return false;
+            if (!check.Contains(c))
+            {
+                return false;
+            }
         }
         return true;
+    }
+
+    private async Task JoinOldRoom(string id)
+    {
+        loading = true;
+        State.roomid = id;
+        await Http.PostAsJsonAsync<string>("Rooms/inject-memory", id);
+        navigationManager.NavigateTo("/chat-room");
     }
 
     private async Task CreateNewRoom()
     {
         loading = true;
-        if (!string.IsNullOrWhiteSpace(password) || password.Length < 6 || password.Length > 15)
+        if (!state)
         {
-            await MatDialogService.AlertAsync("Invalid password, your password must not be empty, has length less than 6 characters");
-            return;
+            if (string.IsNullOrWhiteSpace(password) || password.Length < 6 || password.Length > 15)
+            {
+                loading = false;
+                await MatDialogService.AlertAsync("Invalid password, your password must not be empty, has length less than 6 characters");
+                return;
+            }
         }
         if (!RoomIdCheck())
         {
+            loading = false;
             await MatDialogService.AlertAsync("Invalid RoomId, your RoomId must be a 6-digit code");
+            return;
         }
         Room room = new() { Id = roomid, name = roomname, password = password, state = state };
         var response = await Http.PostAsJsonAsync<Room>($"Rooms/create-room/{State.username}", room);
@@ -161,6 +192,7 @@
         {
             loading = false;
             State.roomid = roomid;
+            State.rooms.Add(roomid);
             navigationManager.NavigateTo("/chat-room");
         }
         else
