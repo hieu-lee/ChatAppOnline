@@ -1,4 +1,5 @@
-﻿@page "/joinroom"
+﻿@page "/"
+@page "/joinroom"
 @page "/joinroom/{CreateRoom:bool}"
 @using ChatApp.Client.Services
 @using System.Net.Http.Formatting
@@ -34,7 +35,7 @@
                     <ul style="max-height: 220px; padding:0; overflow-y: scroll;">
                         <Virtualize Items="State.rooms" Context="room">
                             <li style="list-style: none;">
-                                <span class="link" @onclick="() => { JoinOldRoom(room); }">@room</span>
+                                <span class="link" @onclick="async () => { await JoinOldRoom(room); }">@room</span>
                             </li>
                             <hr />
                         </Virtualize>
@@ -44,8 +45,8 @@
         </div>
         if (ShowPublicRooms)
         {
-            <div style="max-height: 500px; overflow-y:scroll; margin-top: 30px;">
-                <table>
+            <div style="max-height: 500px; overflow-y:scroll; margin-top: 30px; width: 100%;">
+                <table style="width: 100%;">
                     <thead>
                         <tr>
                             <th>Id</th>
@@ -55,7 +56,7 @@
                     <tbody>
                         <Virtualize Context="room" Items="@PublicRooms">
                             <tr>
-                                <td>@room.Item1</td>
+                                <td><span class="link" @onclick="async () => { roomid = room.Item1; await JoinNewRoom(); }">@room.Item1</span></td>
                                 <td>@room.Item2</td>
                             </tr>
                         </Virtualize>
@@ -101,6 +102,7 @@
     private string roomid = string.Empty;
     private string password = string.Empty;
     private List<Tuple<string, string>> PublicRooms = new();
+
     protected override void OnInitialized()
     {
         State.updateTimer.Stop();
@@ -185,6 +187,13 @@
             await MatDialogService.AlertAsync("Invalid RoomId, your RoomId must be a 6-digit code");
             return;
         }
+        if (string.IsNullOrWhiteSpace(roomname))
+        {
+            loading = false;
+            await MatDialogService.AlertAsync("Your room must have a name");
+            return;
+        }
+        roomname = roomname.Trim();
         Room room = new() { Id = roomid, name = roomname, password = password, state = state };
         var response = await Http.PostAsJsonAsync<Room>($"Rooms/create-room/{State.username}", room);
         var res = await response.Content.ReadAsAsync<SignResult>(new[] { new JsonMediaTypeFormatter() });

@@ -1,12 +1,14 @@
-﻿using ChatApp.Shared;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
 using System.Timers;
 
 namespace ChatApp.Client.Services
 {
     public class StateService
     {
+        public string roomName { get; set; } = string.Empty;
         public bool logged { get; set; } = false;
         public string username { get; set; } = string.Empty;
         public byte[] avatar { get; set; }

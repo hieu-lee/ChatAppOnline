@@ -76,12 +76,18 @@
 }
 else
 {
-    <div class="wrapper">
-        <div style="text-align:center; padding: 20px 40px;">
-            <h4>You have already logged in as @State.username</h4>
-            <MatButton Raised="true" @onclick="SignOut">Log Out</MatButton>
-        </div>
+<div class="wrapper">
+    <div style="text-align:center; padding: 20px 40px;">
+        <h4>You have already logged in as @State.username</h4>
+        <MatButton Raised="true" @onclick="SignOut">Log Out</MatButton><br />
+        @if (loading)
+        {
+            <div style="margin-top: 5px;">
+                <span style="text-align:left;"><MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Small" Style="padding-top: 5px;" /></span> Logging out...
+            </div>
+        }
     </div>
+</div>
 }
 
 
@@ -127,6 +133,7 @@ else
             State.avatar = res.avatar;
             State.rooms = res.rooms;
             State.timer.Enabled = true;
+            navigationManager.NavigateTo("/joinroom");
         }
     }
 
@@ -202,15 +209,21 @@ else
 
     private async Task SignOut()
     {
+        loading = true;
         State.timer.Enabled = false;
         State.timer.Close();
+        State.updateTimer.Enabled = false;
+        State.updateTimer.Close();
         await Http.PutAsJsonAsync<bool>($"Accounts/connection/{State.username}", false);
-        navigationManager.NavigateTo("/login");
+        loading = false;
         State.logged = false;
         State.username = string.Empty;
+        State.roomid = string.Empty;
+        State.timerInit = false;
         username = string.Empty;
         password = string.Empty;
         email = string.Empty;
+        navigationManager.NavigateTo("/login");
     }
 
     private async Task ResendCode()
@@ -233,6 +246,7 @@ else
             State.username = username;
             verify = false;
             State.timer.Enabled = true;
+            navigationManager.NavigateTo("/joinroom");
             return;
         }
         else

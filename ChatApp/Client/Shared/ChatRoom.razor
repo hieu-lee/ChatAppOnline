@@ -6,7 +6,10 @@
 @inject HttpClient Http
 @inject NavigationManager navigationManager
 @inject IJSRuntime JsRuntime
-
+<header style="width: 100%;">
+    <h3>@State.roomName</h3>
+</header>
+<hr />
 <div @ref="chatArea" class="chatarea" style="height:@State.chatAreaHeight.ToString()px; width: 100%; overflow-y:scroll;">
     <Virtualize Items="messages" Context="message">
         <Bubble user="@message.username" content="@message.content"></Bubble>
@@ -19,6 +22,8 @@
 </div>
 
 @code {
+    private string TypingState = string.Empty;
+    private bool typing = false;
     private Timer timerScroll = new(100);
     private Timer timer = new(300);
     private IJSObjectReference module;
@@ -47,28 +52,60 @@
     {
         if (!string.IsNullOrWhiteSpace(State.roomid))
         {
-            timerScroll.Elapsed += (s, e) => { ScrollToBottomFast(); };
-            timer.Elapsed += (s, e) => { ScrollToBottom(); };
-            var task = JsRuntime.InvokeAsync<IJSObjectReference>("import", "./Utils.js");
-            if (!State.timerInit)
+            newContent = string.Empty;
+            typing = false;
+            if (string.IsNullOrWhiteSpace(State.roomName))
             {
-                State.updateTimer.Elapsed += (s, e) => { InvokeAsync(UpdateMessage); };
-                State.timerInit = true;
-            }
-            var dimension = await browserService.GetDimensions();
-            browserWidth = dimension.Width;
-            if (browserWidth > 640)
-            {
-                State.chatAreaHeight = dimension.Height - 116;
+                var task = Http.GetStringAsync($"Rooms/roomname/{State.roomid}");
+                timerScroll.Elapsed += (s, e) => { ScrollToBottomFast(); };
+                timer.Elapsed += (s, e) => { ScrollToBottom(); };
+                var task1 = JsRuntime.InvokeAsync<IJSObjectReference>("import", "./Utils.js");
+                if (!State.timerInit)
+                {
+                    State.updateTimer.Elapsed += (s, e) => { InvokeAsync(UpdateMessage); };
+                    State.timerInit = true;
+                }
+                var dimension = await browserService.GetDimensions();
+                browserWidth = dimension.Width;
+                if (browserWidth > 640)
+                {
+                    State.chatAreaHeight = dimension.Height - 196;
+                }
+                else
+                {
+                    State.chatAreaHeight = dimension.Height - 56 - 196;
+                }
+                messages = await Http.GetFromJsonAsync<List<Message>>($"Rooms/messages/{State.roomid}/{State.username}");
+                State.roomName = await task;
+                module = await task1;
+                timer.Start();
+                State.updateTimer.Start();
             }
             else
             {
-                State.chatAreaHeight = dimension.Height - 56 - 116;
+                timerScroll.Elapsed += (s, e) => { ScrollToBottomFast(); };
+                timer.Elapsed += (s, e) => { ScrollToBottom(); };
+                var task1 = JsRuntime.InvokeAsync<IJSObjectReference>("import", "./Utils.js");
+                if (!State.timerInit)
+                {
+                    State.updateTimer.Elapsed += (s, e) => { InvokeAsync(UpdateMessage); };
+                    State.timerInit = true;
+                }
+                var dimension = await browserService.GetDimensions();
+                browserWidth = dimension.Width;
+                if (browserWidth > 640)
+                {
+                    State.chatAreaHeight = dimension.Height - 196;
+                }
+                else
+                {
+                    State.chatAreaHeight = dimension.Height - 56 - 196;
+                }
+                messages = await Http.GetFromJsonAsync<List<Message>>($"Rooms/messages/{State.roomid}/{State.username}");
+                module = await task1;
+                timer.Start();
+                State.updateTimer.Start();
             }
-            messages = await Http.GetFromJsonAsync<List<Message>>($"Rooms/messages/{State.roomid}/{State.username}");
-            module = await task;
-            timer.Start();
-            State.updateTimer.Start();
         }
         else
         {

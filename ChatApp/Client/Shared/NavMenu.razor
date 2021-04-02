@@ -1,5 +1,8 @@
 ﻿@using ChatApp.Client.Services
+@inject NavigationManager navigationManager
 @inject StateService State
+@inject IMatDialogService MatDialogService
+@inject HttpClient Http
 
 <div class="top-row pl-4 navbar navbar-dark">
     <a class="navbar-brand" href="">Chat App</a>
@@ -11,17 +14,7 @@
 <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
     <ul class="nav flex-column" id="nav-menu">
         <li class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Home
-            </NavLink>
-        </li>
-        <li class="nav-item px-3">
-            <NavLink class="nav-link" href="login">
-                <span class="oi oi-account-login" aria-hidden="true"></span> Log In
-            </NavLink>
-        </li>
-        <li class="nav-item px-3">
-            <NavLink class="nav-link" href="joinroom">
+            <NavLink class="nav-link" href="">
                 <span class="oi oi-list-rich" aria-hidden="true"></span> Join Room
             </NavLink>
         </li>
@@ -30,6 +23,19 @@
                 <span class="oi oi-chat" aria-hidden="true"></span> Chat
             </NavLink>
         </li>
+        <li class="nav-item px-3">
+            <NavLink class="nav-link" href="login">
+                <span class="oi oi-account-login" aria-hidden="true"></span> Log In
+            </NavLink>
+        </li>
+        @if (State.logged)
+        {
+            <li class="nav-item px-3" style="cursor: pointer;">
+                <NavLink class="nav-link" @onclick="LogOut">
+                    <span class="oi oi-account-logout" aria-hidden="true"></span> Log Out
+                </NavLink>
+            </li>
+        }
     </ul>
 </div>
 
@@ -41,5 +47,19 @@
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    private async Task LogOut()
+    {
+        State.timer.Enabled = false;
+        State.timer.Close();
+        State.updateTimer.Enabled = false;
+        State.updateTimer.Close();
+        await Http.PutAsJsonAsync<bool>($"Accounts/connection/{State.username}", false);
+        State.logged = false;
+        State.username = string.Empty;
+        State.roomid = string.Empty;
+        State.timerInit = false;
+        navigationManager.NavigateTo("/login");
     }
 }

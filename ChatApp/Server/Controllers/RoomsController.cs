@@ -77,6 +77,20 @@ namespace ChatApp.Server.Controllers
             return res;
         }
 
+        [HttpGet("typing-state/{roomid}/{username}")]
+        public bool GetTypingState(string roomid, string username)
+        {
+            var acc = memoryService.RoomAccounts[roomid].Find(s => (s.username != username) && s.typing).FirstOrDefault();
+            return (acc is not null);
+        }
+
+        [HttpGet("roomname/{roomid}")]
+        public string GetRoomName(string roomid)
+        {
+            var room = rooms.Find(s => s.Id == roomid).FirstOrDefault();
+            return room.name;
+        }
+
         [HttpPost("load-messages/{username}/{roomid}")]
         public async Task<Tuple<List<Message>, DateTime>> LoadMessages(string roomid, string username, [FromBody] DateTime checkpoint)
         {
